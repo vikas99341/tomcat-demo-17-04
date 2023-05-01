@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+tools {
+  maven 'mvn_home'
+}
+    stages {
+        stage('SCM-Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'git-credentials', url: 'https://github.com/vikas99341/tomcat-demo-17-04.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn compile'
+            }
+        }
+        stage('sonar-server') { 
+            steps {
+               withSonarQubeEnv('sonar-server') {
+                  sh "mvn sonar:sonar"
+				}
+            }
+        }
+        stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: true
+              }
+            }
+        }
+        stage('Package') {
+            steps {
+                sh 'mvn package'
+            }
+        }
+        stage('Tomcat-deployment') {
+            steps {
+                sh 'mvn clean'
+            }
+        }
+    }
+}
