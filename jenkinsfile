@@ -1,4 +1,4 @@
-current.display = "Tomcat-Demo"+currentBuild.number
+currentBuild.displayName = "Tomcat-Demo"+currentBuild.number
 
 pipeline {
     agent any
