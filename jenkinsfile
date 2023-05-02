@@ -1,3 +1,5 @@
+current.display = "Tomcat-Demo"+currentBuild.number
+
 pipeline {
     agent any
 tools {
@@ -9,33 +11,35 @@ tools {
                 git branch: 'main', credentialsId: 'git-credentials', url: 'https://github.com/vikas99341/tomcat-demo-17-04.git'
             }
         }
-        stage('Build') {
-            steps {
-                sh 'mvn compile'
-            }
-        }
         stage('sonar-server') { 
             steps {
                withSonarQubeEnv('sonar-server') {
-                  sh "mvn sonar:sonar"
+                  sh 'mvn sonar:sonar'
 				}
             }
         }
-        stage("Quality Gate") {
+        stage('Quality Gate') {
             steps {
               timeout(time: 1, unit: 'HOURS') {
                 waitForQualityGate abortPipeline: true
               }
             }
         }
-        stage('Package') {
+        stage('mvn-package') {
             steps {
-                sh 'mvn package'
+                sh 'mvn clean compile package'
             }
         }
         stage('Tomcat-deployment') {
             steps {
-                sh 'mvn clean'
+                sshagent(['tomcat-credentials']) {
+					sh """
+						scp -o StrictHostKeyChecking=no target/tomcat-demo.war ec2-user@3.110.94.5:/opt/tomcat/webapps/
+						
+						ssh ec2-user@3.110.94.5 /opt/tomcat/bin/shutdown.sh
+						ssh ec2-user@3.110.94.5 /opt/tomcat/bin/startup.sh
+					"""
+				}
             }
         }
     }
