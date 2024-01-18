@@ -1,43 +1,37 @@
-currentBuild.displayName = "Tomcat-Demo"+currentBuild.number
+currentBuild.displayName = "Tomcat-Demo - "+currentBuild.number
 
 pipeline {
     agent any
+
 tools {
   maven 'mvn_home'
-}
-    stages {
-        stage('SCM-Checkout') {
+} 
+
+	stages {       
+        stage('SCM-checkout') {
             steps {
-                git branch: 'main', credentialsId: 'git-credentials', url: 'https://github.com/vikas99341/tomcat-demo-17-04.git'
+                git branch: 'main', credentialsId: 'git-credentials', 
+                url: 'https://github.com/vikas99341/tomcat-demo-17-04.git'
             }
         }
-        stage('sonar-server') { 
+        stage('Maven-Clean') {
             steps {
-               withSonarQubeEnv('sonar-server') {
-                  sh 'mvn sonar:sonar'
-				}
+               sh  'mvn clean '
             }
         }
-        stage('Quality Gate') {
+        stage('Maven-Package') {
             steps {
-              timeout(time: 1, unit: 'HOURS') {
-                waitForQualityGate abortPipeline: true
-              }
+                sh 'mvn package '
             }
         }
-        stage('mvn-package') {
-            steps {
-                sh 'mvn clean compile package'
-            }
-        }
-        stage('Tomcat-deployment') {
+        stage('Tomcat-Deployment') {
             steps {
                 sshagent(['tomcat-credentials']) {
 					sh """
-						scp -o StrictHostKeyChecking=no target/tomcat-demo.war ec2-user@3.110.94.5:/opt/tomcat/webapps/
+						scp -o StrictHostKeyChecking=no target/tomcat-demo.war ec2-user@13.235.246.22:/opt/tomcat/webapps/
 						
-						ssh ec2-user@3.110.94.5 /opt/tomcat/bin/shutdown.sh
-						ssh ec2-user@3.110.94.5 /opt/tomcat/bin/startup.sh
+						ssh ec2-user@13.235.246.22 /opt/tomcat/bin/shutdown.sh
+						ssh ec2-user@13.235.246.22 /opt/tomcat/bin/startup.sh
 					"""
 				}
             }
